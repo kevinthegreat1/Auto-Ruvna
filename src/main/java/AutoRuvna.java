@@ -19,26 +19,15 @@ public class AutoRuvna {
     public static void main(String[] args) {
         if (args.length < 2) {
             System.out.println("\nPlease pass in email and password.\n");
-            return;
-        }
-        if (load()) {
+        } else if (load()) {
             System.out.println("\nRuvna already completed.\n");
-            return;
+        } else {
+            String link = getLinkFromEmail("imap.gmail.com", args[0], args[1]);
+            if (!link.isEmpty()) {
+                System.out.println(ruvna(link) ? "\nRuvna completed.\n" : "\nRuvna already completed.\n");
+                save();
+            }
         }
-        String emailAddress, password;
-        emailAddress = args[0];
-        password = args[1];
-        String link = getLinkFromEmail("imap.gmail.com", emailAddress, password);
-        if (link.isEmpty()) {
-            return;
-        }
-        if (ruvna(link)) {
-            System.out.println("\nRuvna completed.\n");
-            save();
-            return;
-        }
-        System.out.println("\nRuvna already completed.\n");
-        save();
     }
 
     private static String getLinkFromEmail(String host, String emailAddress, String password) {
@@ -52,7 +41,7 @@ public class AutoRuvna {
             Store store = emailSession.getStore("imaps");
             store.connect(host, emailAddress, password);
             Folder inbox = store.getFolder("Inbox");
-            inbox.open(Folder.READ_ONLY);
+            inbox.open(Folder.READ_WRITE);
             Message[] messages = inbox.search(new ReceivedDateTerm(DateTerm.EQ, new Date()));
             for (Message message : messages) {
                 if (message.getFrom()[0].toString().equals("Eaglebrook School <health-no-reply@ruvna.com>")) {
@@ -61,6 +50,7 @@ public class AutoRuvna {
                         String messageString = readInputStream(mimeMultipart.getBodyPart(i).getInputStream());
                         int index = messageString.indexOf("Health screening from Eaglebrook School: ");
                         if (index >= 0) {
+                            message.setFlag(Flags.Flag.SEEN,true);
                             return messageString.substring(index + 41, messageString.indexOf("\n", index + 41) - 1);
                         }
                     }
